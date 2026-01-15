@@ -3,7 +3,6 @@ import streamlit as st
 from dotenv import load_dotenv
 import os
 
-# Carica ambiente prima di importare l'agente
 load_dotenv()
 
 from agent_brain import KitchenAgent
@@ -12,22 +11,26 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 st.set_page_config(page_title="AI Kitchen Agent", layout="wide", page_icon="👨‍🍳")
 
-# Verifica chiave API
 if not os.getenv("GROQ_API_KEY"):
     st.error("⚠️ Chiave GROQ_API_KEY mancante nel file .env!")
     st.stop()
 
-# Inizializzazione
 if "agent" not in st.session_state:
     st.session_state.agent = KitchenAgent()
 if "pantry" not in st.session_state:
-    st.session_state.pantry = {"ingredients": [], "preferences": [], "health_constraints": []}
+    # Inizializzato con people: None
+    st.session_state.pantry = {"ingredients": [], "preferences": [], "health_constraints": [], "people": None}
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # --- SIDEBAR ---
 st.sidebar.title("🍱 Dispensa Aggiornata")
 st.sidebar.info("L'agente estrae i dati dalla chat in tempo reale.")
+
+# AGGIUNTA: Visualizzazione numero persone
+st.sidebar.subheader("👥 Coperti")
+persone = st.session_state.pantry.get("people")
+st.sidebar.write(f"Persone: **{persone if persone else 'Da chiedere...'}**")
 
 st.sidebar.subheader("🛒 Ingredienti")
 if not st.session_state.pantry["ingredients"]:
@@ -42,7 +45,7 @@ for p in st.session_state.pantry["preferences"] + st.session_state.pantry["healt
 
 if st.sidebar.button("Reset Conversazione"):
     st.session_state.chat_history = []
-    st.session_state.pantry = {"ingredients": [], "preferences": [], "health_constraints": []}
+    st.session_state.pantry = {"ingredients": [], "preferences": [], "health_constraints": [], "people": None}
     st.rerun()
 
 # --- CHAT ---
@@ -65,16 +68,13 @@ if user_input := st.chat_input("Ciao! Cosa hai in cucina oggi?"):
         )
     
     if result:
-        # Aggiorna lo stato dei dati
         if result.get("extracted_data"):
             st.session_state.pantry = update_pantry_state(st.session_state.pantry, result["extracted_data"])
         
         reply = result.get("reply", "Capito, dimmi altro.")
         st.chat_message("assistant").write(reply)
         
-        # Salva in cronologia
         st.session_state.chat_history.append(HumanMessage(content=user_input))
         st.session_state.chat_history.append(AIMessage(content=reply))
         
-        # Ricarica per la sidebar
         st.rerun()

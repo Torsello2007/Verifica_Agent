@@ -15,8 +15,12 @@ def update_pantry_state(current_state, new_data):
         if not exists:
             current_state["ingredients"].append(new_ing)
 
-    # Aggiorna preferenze e vincoli evitando duplicati
+    # Aggiorna preferenze e vincoli
     current_state["preferences"] = list(set(current_state["preferences"] + new_data.get("preferences", [])))
     current_state["health_constraints"] = list(set(current_state["health_constraints"] + new_data.get("health_constraints", [])))
+    
+    # AGGIUNTA: Aggiorna numero di persone se rilevato
+    if new_data.get("people"):
+        current_state["people"] = new_data["people"]
     
     return current_state
